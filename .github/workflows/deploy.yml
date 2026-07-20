@@ -19,6 +19,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      WRANGLER_SEND_METRICS: false
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -27,8 +28,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Check TypeScript
-        run: npx tsc --noEmit
+      # `dist` is generated in CI and intentionally excluded from Git.
+      # Wrangler validates assets.directory even during the provisioning deploy.
+      - name: Check and build dashboard
+        run: npm run check
       # 首次推送时，Wrangler 会根据无 ID 的 D1 binding 自动创建 edge-track。
       - name: Provision or update Worker binding
         run: npx wrangler deploy --x-provision
