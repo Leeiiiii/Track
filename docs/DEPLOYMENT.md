@@ -6,16 +6,18 @@
 
 - Cloudflare 账户。
 - GitHub 仓库，默认发布分支为 `main`。
-- 本机 Node.js 22 或更高版本。
+- 本机 Node.js 24 或更高版本（项目提供 `.nvmrc`，可执行 `nvm use`）。
 
 ## 1. 配置 Cloudflare API Token
 
 在 Cloudflare Dashboard → **My Profile → API Tokens → Create Token** 创建一个自定义 Token。资源范围限制到实际部署的 Cloudflare 账户，至少授予：
 
 - **Account / Workers Scripts / Edit**：发布与更新 Worker。
-- **Account / D1 / Edit**：创建数据库、应用迁移并读写数据库配置。
+- **Account / D1 / Edit**（有些 API/文档显示为 `D1 Write`）：创建数据库、查询数据库并应用迁移。
 
 将 Token 复制一次后妥善保存；不要提交到仓库、不要发到聊天记录。
+
+如果你已有 Token，请在 API Tokens 页面编辑或重新创建它，确认以上两项是 **Account 权限**，资源范围包含 `CLOUDFLARE_ACCOUNT_ID` 对应的账户。仅有 Workers 权限不足以自动创建 D1，首次部署会出现 `Authentication error [code: 10000]`。
 
 同一页面或 Cloudflare Dashboard 侧栏可找到 **Account ID**。
 
