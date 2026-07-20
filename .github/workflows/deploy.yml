@@ -31,29 +31,16 @@ jobs:
         run: npx tsc --noEmit
       # 首次推送时，Wrangler 会根据无 ID 的 D1 binding 自动创建 edge-track。
       - name: Provision or update Worker binding
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: 4.112.0
-          command: deploy --x-provision
+        run: npx wrangler deploy --x-provision
       - name: Apply unapplied D1 migrations
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: 4.112.0
-          command: d1 migrations apply edge-track --remote
+        run: npx wrangler d1 migrations apply edge-track --remote
       - name: Synchronize Worker secrets and deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: 4.112.0
-          secrets: |
-            DASHBOARD_PASSWORD
-            SESSION_SIGNING_KEY
-          command: deploy
         env:
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
           SESSION_SIGNING_KEY: ${{ secrets.SESSION_SIGNING_KEY }}
+        run: |
+          secret_file="$(mktemp)"
+          trap 'rm -f "$secret_file"' EXIT
+          jq -n --arg password "$DASHBOARD_PASSWORD" --arg sessionKey "$SESSION_SIGNING_KEY" '{DASHBOARD_PASSWORD: $password, SESSION_SIGNING_KEY: $sessionKey}' > "$secret_file"
+          npx wrangler secret bulk "$secret_file"
+          npx wrangler deploy

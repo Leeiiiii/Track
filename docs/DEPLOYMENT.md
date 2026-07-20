@@ -46,7 +46,7 @@
 ]
 ```
 
-其中 `binding: "DB"` 是 Worker 代码访问数据库的名称，`database_name: "edge-track"` 是要在 Cloudflare 中创建的数据库名称。它刻意没有 `database_id`。
+其中 `binding: "DB"` 是 Worker 代码访问数据库的名称，`database_name: "edge-track"` 是要在 Cloudflare 中创建的数据库名称。它刻意没有 `database_id`。工作流通过 Node 24 直接运行本项目安装的 Wrangler，不再依赖会触发 Node 20 弃用警告的第三方 GitHub Action。
 
 首次 GitHub Actions 运行时，`Provision or update Worker binding` 会执行 `wrangler deploy --x-provision`。Wrangler 发现这个无 ID 的 D1 Binding 后，会自动：
 
