@@ -9,10 +9,14 @@ type Payload = { site?: unknown; visitorId?: unknown; url?: unknown; referrer?: 
 const encoder = new TextEncoder();
 
 function response(body: BodyInit | null, init: ResponseInit = {}): Response {
-  return new Response(body, { ...init, headers: { "Cache-Control": "no-store", ...init.headers } });
+  const headers = new Headers(init.headers);
+  if (!headers.has("Cache-Control")) headers.set("Cache-Control", "no-store");
+  return new Response(body, { ...init, headers });
 }
 function json(data: unknown, init: ResponseInit = {}): Response {
-  return response(JSON.stringify(data), { ...init, headers: { "content-type": "application/json; charset=utf-8", ...init.headers } });
+  const headers = new Headers(init.headers);
+  headers.set("content-type", "application/json; charset=utf-8");
+  return response(JSON.stringify(data), { ...init, headers });
 }
 function cors(request: Request, env: Env): Headers {
   const origin = request.headers.get("Origin") || "";
@@ -37,7 +41,7 @@ async function signature(value: string, key: string): Promise<string> { const cr
 function cookie(request: Request, name: string): string | null { const part = request.headers.get("Cookie")?.split(";").map((v) => v.trim()).find((v) => v.startsWith(`${name}=`)); return part ? decodeURIComponent(part.slice(name.length + 1)) : null; }
 async function authorized(request: Request, env: Env): Promise<boolean> { const token = cookie(request, "edge_track_session"); if (!token) return false; const [expires, signed] = token.split("."); if (!expires || !signed || !/^\d+$/.test(expires) || Number(expires) < Date.now()) return false; return safeEqual(signed, await signature(`admin:${expires}`, env.SESSION_SIGNING_KEY)); }
 function trackerScript(): string {
-  return `(()=>{const s=document.currentScript,d=s?.dataset||{},site=d.site;if(!site)return console.warn('[EdgeTrack] data-site is required');const endpoint=new URL('/collect',s.src).href,key='__edge_track_visitor_'+site;let visitorId;try{visitorId=localStorage.getItem(key);if(!visitorId){visitorId=crypto.randomUUID();localStorage.setItem(key,visitorId)}}catch{visitorId=crypto.randomUUID()}let sent=false;const send=(event,duration=0)=>{if(sent&&event==='leave')return;sent=event==='leave'||sent;const data={site,visitorId,url:location.href,referrer:document.referrer,title:document.title,language:navigator.language,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,screen:screen.width+'x'+screen.height,duration,event};const body=JSON.stringify(data);if(navigator.sendBeacon){navigator.sendBeacon(endpoint,new Blob([body],{type:'application/json'}));}else fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true}).catch(()=>{});};const start=Date.now();send('pageview');addEventListener('pagehide',()=>send('leave',Date.now()-start),{once:true});})();`;
+  return `(()=>{const s=document.currentScript,d=s?.dataset||{},site=d.site;if(!site)return console.warn('[EdgeTrack] data-site is required');const endpoint=new URL('/collect',s.src).href,key='__edge_track_visitor_'+site;let visitorId;try{visitorId=localStorage.getItem(key);if(!visitorId){visitorId=crypto.randomUUID();localStorage.setItem(key,visitorId)}}catch{visitorId=crypto.randomUUID()}let sent=false;const fallback=(body)=>fetch(endpoint,{method:'POST',headers:{'content-type':'text/plain;charset=UTF-8'},body,keepalive:true,mode:'cors'}).catch(()=>{});const send=(event,duration=0)=>{if(sent&&event==='leave')return;sent=event==='leave'||sent;const body=JSON.stringify({site,visitorId,url:location.href,referrer:document.referrer,title:document.title,language:navigator.language,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,screen:screen.width+'x'+screen.height,duration,event});if(navigator.sendBeacon){try{if(navigator.sendBeacon(endpoint,new Blob([body],{type:'text/plain;charset=UTF-8'})))return}catch{}}fallback(body)};const start=Date.now();send('pageview');addEventListener('pagehide',()=>send('leave',Date.now()-start),{once:true});})();`;
 }
 
 const dashboard = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>EdgeTrack · 数据分析</title><style>
