@@ -1,0 +1,6 @@
+# 仅本地开发使用。复制为 .dev.vars 后自行填写，绝不可提交真实值。
+DASHBOARD_PASSWORD=change-this-local-password
+SESSION_SIGNING_KEY=change-this-local-session-signing-key
+
+# 可选：本地限制采集来源；不填写时默认为 *。
+# ALLOWED_ORIGINS=http://localhost:3000
